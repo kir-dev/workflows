@@ -1,0 +1,89 @@
+name: Build and push Docker image
+run-name: Build and push ${{ inputs.docker-registry }}/${{ inputs.docker-image }}
+
+on:
+  workflow_call:
+    # Inputs the workflow accepts.
+    inputs:
+      dry-run:
+        description: "Dry run"
+        default: false
+        required: false
+        type: boolean
+
+      docker-registry:
+        description: "Docker registry to push the image to"
+        default: "ghcr.io"
+        type: string
+      docker-image:
+        description: "Docker image name"
+        default: ${{ github.repository }}
+        type: string
+      docker-tag-config:
+        description: "Docker tag configuration"
+        default: |
+          type=edge
+          type=ref,event=pr
+        type: string
+      docker-username:
+        description: "Docker registry username (optional)"
+        default: ${{ github.actor }}
+        required: false
+        type: string
+      docker-file:
+        description: "Dockerfile path"
+        default: "./Dockerfile"
+        required: false
+        type: string
+      docker-build-args:
+        description: "Docker build arguments"
+        required: false
+        type: string
+      environment:
+        description: "Environment to deploy to"
+        required: false
+        type: string
+
+    secrets:
+      docker-password:
+        description: "Docker registry password (optional)"
+        required: false
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.docker-registry }}
+          username: ${{ inputs.docker-username }}
+          password: ${{ secrets.docker-password || github.token }}
+
+      - name: Set docker image name and tags
+        id: docker-metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{inputs.docker-registry}}/${{inputs.docker-image}}
+          tags: ${{inputs.docker-tag-config}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ inputs.docker-file}}
+          push: ${{ !inputs.dry-run }}
+          tags: ${{ steps.docker-metadata.outputs.tags }}
+          build-args: ${{ inputs.docker-build-args }}
+
+      - name: Inspect Docker image
+        run: docker image ls

@@ -1,0 +1,17 @@
+name: Create and publish docker image with latest tag
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-push-image:
+    # 1. Create an environment called `docker-latest` in your repository settings
+    # 2. select required reviewers and add the `kir-dev/infra` team
+    # optionally configure environment branch protection rules
+    environment: docker-latest
+    uses: kir-dev/workflows/.github/workflows/docker-publish.yml@main
+    with:
+      docker-tag-config: type=raw,value=latest
+
