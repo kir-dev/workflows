@@ -1,0 +1,80 @@
+name: Publish Package to npmjs
+
+on:
+  workflow_call:
+    inputs:
+      package-manager:
+        description: "npm or yarn"
+        required: true
+        type: string
+
+      node-version:
+        description: "Node.js version"
+        required: true
+        type: string
+
+      working-directory-package:
+        description: "Working directory when running package manager"
+        required: false
+        type: string
+
+      working-directory-script:
+        description: "Working directory when running package manager scripts"
+        required: false
+        type: string
+
+      script-name-build:
+        description: "Build script name"
+        default: "build"
+        type: string
+
+      environment:
+        description: "Environment to deploy to"
+        required: false
+        type: string
+
+    secrets:
+      NPM_TOKEN:
+        description: "NPM token"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version}}
+          cache: ${{ inputs.package-manager}}
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (with yarn)
+        if: ${{ inputs.package-manager == 'yarn' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: yarn install --immutable
+
+      - name: Install dependencies (with npm)
+        if: ${{ inputs.package-manager == 'npm' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: |
+          npm ci
+          npx --yes package-lock-utd@1.x.x
+
+      - name: Run build
+        working-directory: ${{ inputs.working-directory-script }}
+        run: |
+          ${{ inputs.package-manager }} run ${{ inputs.script-name-build }}
+
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
