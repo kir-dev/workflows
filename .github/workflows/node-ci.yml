@@ -1,0 +1,140 @@
+name: Lint and build Node.js project
+
+on:
+  workflow_call:
+    inputs:
+      package-manager:
+        description: "npm or yarn"
+        required: true
+        type: string
+
+      node-version:
+        description: "Node.js version"
+        required: true
+        type: string
+
+      working-directory-package:
+        description: "Working directory when running package manager"
+        required: false
+        type: string
+
+      working-directory-script:
+        description: "Working directory when running package manager scripts"
+        required: false
+        type: string
+
+      script-name-build:
+        description: "Build script name"
+        default: "build"
+        type: string
+
+      script-name-lint:
+        description: "Lint script name"
+        default: "lint"
+        type: string
+
+      enable-lint:
+        description: "Enable linting"
+        default: true
+        type: boolean
+
+      enable-build:
+        description: "Enable linting"
+        default: true
+        type: boolean
+
+      custom-script:
+        description: "Custom script to run"
+        required: false
+        type: string
+
+jobs:
+  eslint-check:
+    if: ${{ inputs.enable-lint }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version}}
+          cache: ${{ inputs.package-manager}}
+
+      - name: Install dependencies (with yarn)
+        if: ${{ inputs.package-manager == 'yarn' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: yarn install --immutable
+
+      - name: Install dependencies (with npm)
+        if: ${{ inputs.package-manager == 'npm' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: |
+          npm ci
+          npx --yes package-lock-utd@1.x.x
+
+      - name: Run linter
+        working-directory: ${{ inputs.working-directory-script }}
+        run: |
+          ${{ inputs.package-manager }} run ${{ inputs.script-name-lint }}
+
+  build:
+    if: ${{ inputs.enable-build }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version}}
+          cache: ${{ inputs.package-manager}}
+
+      - name: Install dependencies (with yarn)
+        if: ${{ inputs.package-manager == 'yarn' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: yarn install --immutable
+
+      - name: Install dependencies (with npm)
+        if: ${{ inputs.package-manager == 'npm' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: npm ci
+
+      - name: Run build
+        working-directory: ${{ inputs.working-directory-script }}
+        run: |
+          ${{ inputs.package-manager }} run ${{ inputs.script-name-build }}
+
+  custom-script:
+    if: ${{ inputs.custom-script != null }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version}}
+          cache: ${{ inputs.package-manager}}
+
+      - name: Install dependencies (with yarn)
+        if: ${{ inputs.package-manager == 'yarn' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: yarn install --immutable
+
+      - name: Install dependencies (with npm)
+        if: ${{ inputs.package-manager == 'npm' }}
+        working-directory: ${{ inputs.working-directory-package }}
+        run: |
+          npm ci
+          npx --yes package-lock-utd@1.x.x
+
+      - name: Run linter
+        working-directory: ${{ inputs.working-directory-script }}
+        run: ${{ inputs.custom-script }}

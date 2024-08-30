@@ -1,0 +1,17 @@
+name: Static analysis and CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  analysis:
+    uses: kir-dev/workflows/.github/workflows/node-ci.yml@main
+    with:
+      package-manager: yarn
+      node-version: 20
+
