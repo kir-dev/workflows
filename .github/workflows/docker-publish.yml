@@ -11,6 +11,11 @@ on:
         required: false
         type: boolean
 
+      ref:
+        description: "Branch or tag"
+        required: false
+        type: string
+
       docker-registry:
         description: "Docker registry to push the image to"
         default: "ghcr.io"
@@ -61,6 +66,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Log in to the Docker registry
         uses: docker/login-action@v3

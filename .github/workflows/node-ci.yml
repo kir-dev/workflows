@@ -3,6 +3,11 @@ name: Lint and build Node.js project
 on:
   workflow_call:
     inputs:
+      ref:
+        description: "Branch or tag"
+        required: false
+        type: string
+
       package-manager:
         description: "npm or yarn"
         required: true
@@ -56,6 +61,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
